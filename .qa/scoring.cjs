@@ -1,0 +1,13 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync('index.html','utf8');
+const game=html.match(/<script id="game-code">([\s\S]*?)<\/script>/)[1];
+new vm.Script(game);
+const Score=vm.runInNewContext(game.slice(game.indexOf('class TennisScore'),game.indexOf('const $='))+';TennisScore');
+const equal=(a,b)=>assert.equal(JSON.stringify(a),JSON.stringify(b));
+const winGame=(s,w)=>{for(let i=0;i<4;i++)s.award(w)};
+let s=new Score();equal(s.pointLabels(),['0','0']);s.award(0);equal(s.pointLabels(),['15','0']);s.award(0);equal(s.pointLabels(),['30','0']);s.award(0);equal(s.pointLabels(),['40','0']);for(let i=0;i<3;i++)s.award(1);equal(s.pointLabels(),['40','40']);s.award(0);equal(s.pointLabels(),['AD','40']);s.award(1);equal(s.pointLabels(),['40','40']);s.award(1);equal(s.pointLabels(),['40','AD']);s.award(1);equal(s.games,[0,1]);assert.equal(s.server,1);
+s=new Score();for(let i=0;i<6;i++)winGame(s,0);equal(s.sets,[1,0]);equal(s.history,[[6,0]]);for(let i=0;i<6;i++)winGame(s,0);assert.equal(s.winner,0);s.award(1);equal(s.sets,[2,0]);
+s=new Score(5);for(let set=0;set<2;set++)for(let i=0;i<6;i++)winGame(s,0);assert.equal(s.winner,null);for(let i=0;i<6;i++)winGame(s,0);assert.equal(s.winner,0);
+s=new Score();for(let i=0;i<5;i++){winGame(s,0);winGame(s,1);}winGame(s,0);equal(s.games,[6,5]);winGame(s,0);equal(s.history,[[7,5]]);
+s=new Score();for(let i=0;i<6;i++){winGame(s,0);winGame(s,1);}assert.equal(s.tie,true);assert.equal(s.server,0);s.award(0);assert.equal(s.server,1);s.award(1);assert.equal(s.server,1);s.award(0);assert.equal(s.server,0);for(let i=0;i<4;i++){s.award(0);s.award(1);}s.award(1);equal(s.points,[6,6]);s.award(0);assert.equal(s.tie,true);s.award(0);equal(s.history,[[7,6]]);assert.equal(s.server,1);
+console.log('PASS: JavaScript syntax; Love/15/30/40; deuce/advantage; game/server rotation; 6-0 and 7-5 sets; best-of-3 and best-of-5 match wins; extended tie-break and service order.');
